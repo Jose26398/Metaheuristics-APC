@@ -11,7 +11,7 @@ np.random.seed(73)
 # -----------------------------------------------------------------------------------
 # Lectura de datos
 # -----------------------------------------------------------------------------------
-df = pd.read_csv('doc/ionosphere.csv')
+df = pd.read_csv('doc/texture.csv')
 data = df.values
 datos = data[:,1:]
 
@@ -183,22 +183,26 @@ elif opcion == '3':
         print(ejecucion)
         antes = time.time()
         nEval = 0
-        padres = np.random.uniform(0, 1, size=(30, datos.shape[1]-1) )
+        hijos = np.random.uniform(0, 1, size=(30, datos.shape[1]-1) )
 
-        gananciaMax = 0
+        gMaxPadre = 0
         for i in range(30):
-            n_ganancia = obtenerGanancia(padres[i], train[ejecucion][0], train[ejecucion][1])
-            if  n_ganancia > gananciaMax:
-                gananciaMax = n_ganancia
-                w = np.copy(padres[i])
+            ganancia = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
+            if  ganancia > gMaxPadre:
+                gMaxPadre = ganancia
+                w = np.copy(hijos[i])
 
 
         while nEval < maxEval:
             nEval += 1
-            index = np.random.choice(int(padres.shape[0]*0.7), int(padres.shape[0]*0.7), replace=False)
+            index = np.random.choice(int(hijos.shape[0]*0.7), int(hijos.shape[0]*0.7), replace=False)
 
             # Seleccionar P(t)
-            n_padres = np.copy(padres)
+            padres = np.copy(hijos)
+            gMaxHijo = 0
+            posMaxPadre = 0
+            gMinHijo = 100
+            posMinHijo = 0
 
             for p in range(int(index.size/2)):
                 # Cruce P(t)
@@ -208,19 +212,37 @@ elif opcion == '3':
 
                 # Evaluar P(t)
                 if ganancia1 > ganancia2:
-                    n_padres[index[p]] = np.copy(cromo1)
-                    if ganancia1 > gananciaMax:
-                        gananciaMax = ganancia1
+                    hijos[index[p]] = np.copy(cromo1)
+
+                    if ganancia1 > gMaxHijo:
                         w = np.copy(cromo1)
+                        gMaxHijo = ganancia1
+                        posMaxHijo = index[p]
+
+                    elif ganancia1 < gMinHijo:
+                        gMinHijo = ganancia1
+                        posMinHijo = index[p]
+
 
                 else:
-                    n_padres[index[index.size-1-p]] = np.copy(cromo2)
-                    if ganancia2 > gananciaMax:
-                        gananciaMax = ganancia2
-                        w = np.copy(cromo2)
+                    hijos[index[index.size-1-p]] = np.copy(cromo2)
 
-            if nEval > maxEval:
-                break
+                    if ganancia2 > gMaxHijo:
+                        w = np.copy(cromo2)
+                        gMaxHijo = ganancia2
+                        posMaxHijo = index[index.size-1-p]
+
+                    elif ganancia2 < gMinHijo:
+                        gMinHijo = ganancia2
+                        posMinHijo = index[index.size-1-p]
+
+
+
+            if gMaxHijo < gMaxPadre:
+                hijos[posMinHijo] = padres[posMaxPadre]
+            else:
+                posMaxPadre = posMaxHijo
+
 
         resultados.append(evaluar(w, test[ejecucion][0], test[ejecucion][1], antes))
 

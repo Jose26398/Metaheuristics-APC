@@ -44,6 +44,8 @@ print("1 - Búsqueda Local")
 print("2 - Greedy RELIEF")
 print("3 - AGG Cruce BLX")
 print("4 - AGG Cruce Aritmético")
+print("5 - AGE Cruce BLX")
+print("6 - AGE Cruce Aritmético")
 opcion = input()
 resultados = []
 
@@ -99,7 +101,7 @@ def cruceBLX(cromosoma1, cromosoma2, alpha):
     return w1, w2
 
 
-def cruceAritmético(cromosoma1, cromosoma2):
+def cruceAritmetico(cromosoma1, cromosoma2):
     w1 = np.copy(cromosoma1)
     w2 = np.copy(cromosoma2)
 
@@ -202,7 +204,7 @@ elif opcion == '3':
     maxEval = 15000
     tamPoblacion = 30
 
-    for ejecucion in range(1):
+    for ejecucion in range(5):
         print(ejecucion)
         antes = time.time()
         nEval = 0
@@ -273,90 +275,269 @@ elif opcion == '3':
                         posMinHijo = p+1
 
 
-
-            if gMaxHijo < gMaxPadre:
-                poblacion[posMinHijo] = nuevaPoblacion[posMaxPadre]
+            if gMinHijo < gMaxPadre:
+                nuevaPoblacion[posMinHijo] = poblacion[posMaxPadre]
             else:
-                posMaxPadre = posMaxHijo
-
+                posMaxPadre = posMinHijo
 
         resultados.append(evaluar(w, test[ejecucion][0], test[ejecucion][1], antes))
 
 
-# -----------------------------------------------------------------------------------
-# ------------------ Algoritmo Genético Generacional (Cruce Aritmético) --------------------
-# -----------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------
+# --------------- Algoritmo Genético Generacional (Cruce Aritmético) -----------------
+# ------------------------------------------------------------------------------------
 elif opcion == '4':
     maxEval = 15000
+    tamPoblacion = 30
 
     for ejecucion in range(5):
         print(ejecucion)
         antes = time.time()
         nEval = 0
-        hijos = np.random.uniform(0, 1, size=(30, datos.shape[1]-1) )
+        gMaxHijo = 0
+        gMinHijo = 1
 
+        nuevaPoblacion = np.random.uniform(0, 1, size=(30, datos.shape[1] - 1))
         gMaxPadre = 0
-        for i in range(30):
-            ganancia = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
-            if  ganancia > gMaxPadre:
-                gMaxPadre = ganancia
-                w = np.copy(hijos[i])
 
+        for i in range(tamPoblacion):
+            ganancia = obtenerGanancia(nuevaPoblacion[i], train[ejecucion][0], train[ejecucion][1])
+            if ganancia > gMaxPadre:
+                gMaxPadre = ganancia
+                posMaxPadre = i
+                w = np.copy(nuevaPoblacion[i])
 
         while nEval < maxEval:
-            index1 = np.random.choice(hijos.shape[0], hijos.shape[0], replace=False)
-            index2 = np.random.choice(hijos.shape[0], hijos.shape[0], replace=False)
+            poblacion = np.copy(nuevaPoblacion)
 
-            # Seleccionar P(t)
-            padres = np.copy(hijos)
-            gMaxHijo = 0
-            posMaxPadre = 0
-            gMinHijo = 100
-            posMinHijo = 0
-
-            for p in range(int(index1.size/2)):
+            nuevaPoblacion = []
+            for p in range(int(tamPoblacion * 1.4)):
                 nEval += 1
                 # Cruce P(t)
-                cromo1 = cruceAritmético(padres[index1[p]], padres[index1[index1.size-1-p]])
-                cromo2 = cruceAritmético(padres[index2[p]], padres[index2[index2.size - 1 - p]])
+                cromo1 = cruceAritmetico(poblacion[np.random.randint(tamPoblacion)], poblacion[np.random.randint(tamPoblacion)])
+                cromo2 = cruceAritmetico(poblacion[np.random.randint(tamPoblacion)], poblacion[np.random.randint(tamPoblacion)])
                 ganancia1 = obtenerGanancia(cromo1, train[ejecucion][0], train[ejecucion][1])
                 ganancia2 = obtenerGanancia(cromo2, train[ejecucion][0], train[ejecucion][1])
 
                 # Evaluar P(t)
                 if ganancia1 > ganancia2:
-                    hijos[index1[p]] = np.copy(cromo1)
+                    cromo1 = (mutate(cromo1))
+                    nuevaPoblacion.append(cromo1)
 
                     if ganancia1 > gMaxHijo:
                         w = np.copy(cromo1)
                         gMaxHijo = ganancia1
-                        posMaxHijo = index1[p]
+                        posMaxHijo = p
 
                     elif ganancia1 < gMinHijo:
                         gMinHijo = ganancia1
-                        posMinHijo = index1[p]
+                        posMinHijo = p
 
 
                 else:
-                    hijos[index[index.size-1-p]] = np.copy(cromo2)
+                    cromo2 = (mutate(cromo2))
+                    nuevaPoblacion.append(cromo2)
 
                     if ganancia2 > gMaxHijo:
                         w = np.copy(cromo2)
                         gMaxHijo = ganancia2
-                        posMaxHijo = index[index.size-1-p]
+                        posMaxHijo = p
 
                     elif ganancia2 < gMinHijo:
                         gMinHijo = ganancia2
-                        posMinHijo = index[index.size-1-p]
+                        posMinHijo = p
 
-
-
-            if gMaxHijo < gMaxPadre:
-                hijos[posMinHijo] = padres[posMaxPadre]
+            nuevaPoblacion = np.array(nuevaPoblacion)
+            print(w)
+            if gMinHijo < gMaxPadre:
+                nuevaPoblacion[posMinHijo] = poblacion[posMaxPadre]
             else:
-                posMaxPadre = posMaxHijo
-
+                posMaxPadre = posMinHijo
 
         resultados.append(evaluar(w, test[ejecucion][0], test[ejecucion][1], antes))
+
+
+
+
+# -----------------------------------------------------------------------------------
+# ------------------ Algoritmo Genético Estacionario (Cruce BLX) --------------------
+# -----------------------------------------------------------------------------------
+elif opcion == '5':
+    maxEval = 15000
+    tamPoblacion = 30
+
+    for ejecucion in range(5):
+        print(ejecucion)
+        antes = time.time()
+        nEval = 0
+        gananciaMax = 0
+        gMinPadre = 0
+        gMinPadre2 = 0
+        gPosPadre = 0
+        gPosPadre2 = 0
+
+        poblacion = np.random.uniform(0, 1, size=(30, datos.shape[1] - 1))
+
+
+        while nEval < maxEval:
+
+            for i in range(tamPoblacion):
+                nEval += 1
+                ganancia = obtenerGanancia(poblacion[i], train[ejecucion][0], train[ejecucion][1])
+
+                if ganancia > gananciaMax:
+                    gananciaMax = ganancia
+                    w = np.copy(poblacion[i])
+
+                if ganancia > gMinPadre2:
+                    gMinPadre = gMinPadre2
+                    gPosPadre = gPosPadre2
+                    gMinPadre2 = ganancia
+                    gPosPadre2 = i
+
+                elif ganancia > gMinPadre:
+                    gMinPadre = ganancia
+                    gPosPadre = i
+
+
+            # Seleccionar P(t)
+            nuevaPoblacion = []
+            for i in range(2):
+                index = np.random.randint(tamPoblacion, size=2)
+                cromo1, cromo2 = poblacion[index]
+
+                if obtenerGanancia(cromo1, train[ejecucion][0], train[ejecucion][1]) < \
+                        obtenerGanancia(cromo2, train[ejecucion][0], train[ejecucion][1]):
+                    nuevaPoblacion.append(cromo1)
+                else:
+                    nuevaPoblacion.append(cromo2)
+
+            nuevaPoblacion = np.array(nuevaPoblacion)
+
+
+            # Cruce P(t)
+            cromo1, cromo2 = cruceBLX(nuevaPoblacion[0], nuevaPoblacion[1], 0.3)
+            ganancia1 = obtenerGanancia(cromo1, train[ejecucion][0], train[ejecucion][1])
+            ganancia2 = obtenerGanancia(cromo2, train[ejecucion][0], train[ejecucion][1])
+
+            if ganancia1 > gMinPadre2:
+                poblacion[gPosPadre2] = np.copy(mutate(cromo1))
+                gMinPadre = gMinPadre2
+                gMinPadre2 = ganancia1
+
+            elif ganancia1 > gMinPadre:
+                poblacion[gPosPadre] = np.copy(mutate(cromo1))
+                gMinPadre = ganancia1
+
+            if ganancia2 > gMinPadre2:
+                poblacion[gPosPadre2] = np.copy(mutate(cromo2))
+                gMinPadre = gMinPadre2
+                gMinPadre2 = ganancia2
+
+            elif ganancia2 > gMinPadre:
+                poblacion[gPosPadre] = np.copy(mutate(cromo2))
+                gMinPadre = ganancia2
+
+
+
+        for i in range(tamPoblacion):
+            ganancia = obtenerGanancia(poblacion[i], train[ejecucion][0], train[ejecucion][1])
+
+            if ganancia > gananciaMax:
+                gananciaMax = ganancia
+                w = np.copy(poblacion[i])
+
+        resultados.append(evaluar(w, test[ejecucion][0], test[ejecucion][1], antes))
+
+
+
+
+# ------------------------------------------------------------------------------------
+# --------------- Algoritmo Genético Estacionario (Cruce Aritmético) -----------------
+# ------------------------------------------------------------------------------------
+elif opcion == '6':
+    maxEval = 15000
+    tamPoblacion = 30
+
+    for ejecucion in range(5):
+        print(ejecucion)
+        antes = time.time()
+        nEval = 0
+        gananciaMax = 0
+        gMinPadre = 0
+        gMinPadre2 = 0
+        gPosPadre = 0
+        gPosPadre2 = 0
+
+        poblacion = np.random.uniform(0, 1, size=(30, datos.shape[1] - 1))
+
+        while nEval < maxEval:
+
+            for i in range(tamPoblacion):
+                nEval += 1
+                ganancia = obtenerGanancia(poblacion[i], train[ejecucion][0], train[ejecucion][1])
+
+                if ganancia > gananciaMax:
+                    gananciaMax = ganancia
+                    w = np.copy(poblacion[i])
+
+                if ganancia > gMinPadre2:
+                    gMinPadre = gMinPadre2
+                    gPosPadre = gPosPadre2
+                    gMinPadre2 = ganancia
+                    gPosPadre2 = i
+
+                elif ganancia > gMinPadre:
+                    gMinPadre = ganancia
+                    gPosPadre = i
+
+            # Seleccionar P(t)
+            nuevaPoblacion = []
+            for i in range(4):
+                index = np.random.randint(tamPoblacion, size=2)
+                cromo1, cromo2 = poblacion[index]
+
+                if obtenerGanancia(cromo1, train[ejecucion][0], train[ejecucion][1]) < \
+                        obtenerGanancia(cromo2, train[ejecucion][0], train[ejecucion][1]):
+                    nuevaPoblacion.append(cromo1)
+                else:
+                    nuevaPoblacion.append(cromo2)
+
+            nuevaPoblacion = np.array(nuevaPoblacion)
+
+            # Cruce P(t)
+            cromo1 = cruceAritmetico(nuevaPoblacion[0], nuevaPoblacion[1])
+            cromo2 = cruceAritmetico(nuevaPoblacion[2], nuevaPoblacion[3])
+            ganancia1 = obtenerGanancia(cromo1, train[ejecucion][0], train[ejecucion][1])
+            ganancia2 = obtenerGanancia(cromo2, train[ejecucion][0], train[ejecucion][1])
+
+            if ganancia1 > gMinPadre2:
+                poblacion[gPosPadre2] = np.copy(mutate(cromo1))
+                gMinPadre = gMinPadre2
+                gMinPadre2 = ganancia1
+
+            elif ganancia1 > gMinPadre:
+                poblacion[gPosPadre] = np.copy(mutate(cromo1))
+                gMinPadre = ganancia1
+
+            if ganancia2 > gMinPadre2:
+                poblacion[gPosPadre2] = np.copy(mutate(cromo2))
+                gMinPadre = gMinPadre2
+                gMinPadre2 = ganancia2
+
+            elif ganancia2 > gMinPadre:
+                poblacion[gPosPadre] = np.copy(mutate(cromo2))
+                gMinPadre = ganancia2
+
+        for i in range(tamPoblacion):
+            ganancia = obtenerGanancia(poblacion[i], train[ejecucion][0], train[ejecucion][1])
+
+            if ganancia > gananciaMax:
+                gananciaMax = ganancia
+                w = np.copy(poblacion[i])
+
+        resultados.append(evaluar(w, test[ejecucion][0], test[ejecucion][1], antes))
+
 
 
 

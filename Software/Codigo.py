@@ -1,19 +1,10 @@
-import pandas as pd
-import numpy as np
-import time
-from scipy.spatial import KDTree
-from scipy.spatial import cKDTree
-from sklearn.model_selection import StratifiedKFold
+from practicasAnteriores import *
 
-np.random.seed(73)
+np.random.seed(14)
 
 
-# -----------------------------------------------------------------------------------
 # Lectura de datos
-# -----------------------------------------------------------------------------------
-df = pd.read_csv('doc/ionosphere.csv')
-data = df.values
-datos = data[:,1:]
+datos = read_data('doc/texture.csv')
 
 
 # -----------------------------------------------------------------------------------
@@ -24,7 +15,7 @@ skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=73)
 train = []
 test = []
 
-x = datos[:,:datos.shape[1]-1]
+X = datos[:,:datos.shape[1]-1]
 y = datos[:,datos.shape[1]-1]
 
 for train_index, test_index in skf.split(x, y):
@@ -33,6 +24,7 @@ for train_index, test_index in skf.split(x, y):
 
    train.append([x_train, y_train])
    test.append([x_test, y_test])
+
 
 
 # -----------------------------------------------------------------------------------
@@ -50,118 +42,20 @@ print("7 - AM (10,1.0)")
 print("8 - AM (10,0.1)")
 print("9 - AM (10,0.1mej)")
 opcion = input()
+
+nEjecucuiones = 5
 resultados = []
-
-
-# -----------------------------------------------------------------------------------
-# Función de evaluación para sacar los 4 parámetros de las tablas
-# Devuelve los porcentajes y el tiempo que ha tardado
-# -----------------------------------------------------------------------------------
-def evaluar(w, atributos, clases, antes):
-    prod = (atributos * w)[:, w > 0.2]
-
-    arbol = cKDTree(prod)
-    vecinos = arbol.query(prod, k=2)[1][:, 1]
-
-    _clas = np.mean(clases[vecinos] == clases)
-    _red = np.mean(w < 0.2)
-    despues = time.time()
-
-    return _clas*100, _red*100, (_clas*0.5 + _red*0.5)*100, despues - antes
-
-
-# -----------------------------------------------------------------------------------
-# Función obtenerGanancia para comparar los valores de la BL
-# Devuelve los porcentaje y el tiempo que ha tardado
-# -----------------------------------------------------------------------------------
-def obtenerGanancia(w, atributos, clases):
-    prod = (atributos * w)[:, w > 0.2]
-
-    arbol = cKDTree(prod)
-    vecinos = arbol.query(prod, k=2)[1][:, 1]
-
-    _clas = np.mean(clases[vecinos] == clases)
-    _red = np.mean(w < 0.2)
-
-    return (_clas*0.5 + _red*0.5)
-
-
-def cruceBLX(cromosoma1, cromosoma2, alpha):
-    w1 = np.copy(cromosoma1)
-    w2 = np.copy(cromosoma2)
-
-    for i in range(w1.size):
-        cMax = max(w1[i],w2[i])
-        cMin = min(w1[i],w2[i])
-        I = cMax - cMin
-
-        w1[i] = np.random.uniform(cMin - I*alpha, cMax + I*alpha)
-        w2[i] = np.random.uniform(cMin - I * alpha, cMax + I * alpha)
-
-        w1[i] = np.clip(w1[i], 0, 1)
-        w2[i] = np.clip(w2[i], 0, 1)
-
-    return w1, w2
-
-
-def cruceAritmetico(cromosoma1, cromosoma2):
-    w1 = np.copy(cromosoma1)
-    w2 = np.copy(cromosoma2)
-
-    w = []
-    for i in range(w1.size):
-        w.append( (w1[i] + w2[i])/2 )
-
-    return np.array(w)
-
-
-
-def mutate(cromosoma):
-    if np.random.random() <= 0.001:
-        punto = np.random.randint(0, cromosoma.size)
-        cromosoma[punto] += np.random.normal(0, 0.3)
-
-    return cromosoma
-
 
 
 # -----------------------------------------------------------------------------------
 # ---------------------------- Algoritmo Búsqueda Local -----------------------------
 # -----------------------------------------------------------------------------------
 if opcion == '1':
-    maxEval = 15000
-    maxVec = 20
-
-    for ejecucion in range(5):
+    for e in nEjecucuiones:
         antes = time.time()
-        w = np.random.random_sample((x.shape[1],))
-        ganancia = obtenerGanancia(w, test[ejecucion][0], test[ejecucion][1])
-        nEval = 0
-        nAtrib = 0
-        fin = False
-
-        while nEval < maxEval and nAtrib < (maxVec*x.shape[1]) and fin == False:
-            wActual = np.copy(w)
-
-            for posNuevo in np.random.permutation(x.shape[1]):
-                w[posNuevo] += np.random.normal(loc=0, scale=(0.3**2))
-                w[posNuevo] = np.clip(w[posNuevo], 0, 1)
-                gananciaNueva = obtenerGanancia(w, train[ejecucion][0], train[ejecucion][1])
-                nEval += 1
-
-                if gananciaNueva > ganancia:
-                    ganancia = gananciaNueva
-                    nAtrib = 0
-                    break
-                else:
-                    nAtrib+=1
-                    w[posNuevo] = wActual[posNuevo]
-
-                if nEval > maxEval or nAtrib > maxVec*x.shape[1]:
-                    fin = True
-                    break
-
-        resultados.append(evaluar(w, test[ejecucion][0], test[ejecucion][1], antes))
+        print(train[0])
+        w = busquedaLocal(train[e], test[e], 15000, 20, x.shape[1])
+        resultados.append(evaluar(w, test[e], test[e], antes))
 
 
 
@@ -582,18 +476,19 @@ elif opcion == '7':
 
             # Busqueda Local
             if nGeneraciones % 10 == 0:
-                hijosBL = np.copy(hijos)
                 for i in range(tamPoblacion):
                     nAtrib = 0
                     fin = False
                     gananciaAntigua = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
 
                     while nAtrib < (2 * datos.shape[1]) and fin == False:
+                        hijosBL = np.copy(hijos)
+                        nEval += 1
+
                         for posNuevo in np.random.permutation(datos.shape[1] - 1):
-                            nEval += 1
                             hijosBL[i][posNuevo] += np.random.normal(loc=0, scale=(0.3 ** 2))
                             hijosBL[i][posNuevo] = np.clip(hijos[i][posNuevo], 0, 1)
-                            gananciaNueva = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
+                            gananciaNueva = obtenerGanancia(hijosBL[i], train[ejecucion][0], train[ejecucion][1])
 
                             if gananciaNueva > gananciaAntigua:
                                 gananciaAntigua = gananciaNueva
@@ -689,7 +584,6 @@ elif opcion == '8':
 
             # Busqueda Local
             if nGeneraciones % 10 == 0:
-                hijosBL = np.copy(hijos)
                 for j in range(int(tamPoblacion * 0.1)):
                     i = np.random.randint(tamPoblacion)
                     nAtrib = 0
@@ -697,11 +591,13 @@ elif opcion == '8':
                     gananciaAntigua = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
 
                     while nAtrib < (2 * datos.shape[1]) and fin == False:
+                        hijosBL = np.copy(hijos)
+                        nEval += 1
+
                         for posNuevo in np.random.permutation(datos.shape[1] - 1):
-                            nEval += 1
                             hijosBL[i][posNuevo] += np.random.normal(loc=0, scale=(0.3 ** 2))
                             hijosBL[i][posNuevo] = np.clip(hijos[i][posNuevo], 0, 1)
-                            gananciaNueva = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
+                            gananciaNueva = obtenerGanancia(hijosBL[i], train[ejecucion][0], train[ejecucion][1])
 
                             if gananciaNueva > gananciaAntigua:
                                 gananciaAntigua = gananciaNueva
@@ -797,18 +693,19 @@ elif opcion == '9':
 
             # Busqueda Local
             if nGeneraciones % 10 == 0:
-                hijosBL = np.copy(hijos)
                 for i in range(int(tamPoblacion*0.1)):
                     nAtrib = 0
                     fin = False
                     gananciaAntigua = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
 
                     while nAtrib < (2 * datos.shape[1]) and fin == False:
+                        hijosBL = np.copy(hijos)
+
                         for posNuevo in np.random.permutation(datos.shape[1] - 1):
                             nEval += 1
                             hijosBL[i][posNuevo] += np.random.normal(loc=0, scale=(0.3 ** 2))
                             hijosBL[i][posNuevo] = np.clip(hijos[i][posNuevo], 0, 1)
-                            gananciaNueva = obtenerGanancia(hijos[i], train[ejecucion][0], train[ejecucion][1])
+                            gananciaNueva = obtenerGanancia(hijosBL[i], train[ejecucion][0], train[ejecucion][1])
 
                             if gananciaNueva > gananciaAntigua:
                                 gananciaAntigua = gananciaNueva
@@ -842,5 +739,5 @@ else:
 
 
 df = pd.DataFrame(resultados)
-#df.to_csv('result.csv', index=False)
+df.to_csv('result.csv', index=False)
 print(df)

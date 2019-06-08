@@ -1,29 +1,13 @@
 from practicasAnteriores import *
 
-np.random.seed(14)
+np.random.seed(1)
 
 
 # Lectura de datos
 datos = read_data('doc/texture.csv')
 
-
-# -----------------------------------------------------------------------------------
-# División de los datos en 5 partes iguales conservando la
-# proporción 80%-20%. Se guardarán en las listas train y test
-# -----------------------------------------------------------------------------------
-skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=73)
-train = []
-test = []
-
-X = datos[:,:datos.shape[1]-1]
-y = datos[:,datos.shape[1]-1]
-
-for train_index, test_index in skf.split(X, y):
-   x_train, y_train = X[train_index], y[train_index]
-   x_test, y_test   = X[test_index], y[test_index]
-
-   train.append([x_train, y_train])
-   test.append([x_test, y_test])
+#División de los datos
+X, y, train, test = divide_data(datos)
 
 
 
@@ -64,14 +48,12 @@ def enfriamientoSimulado(train, maxEval, numAtributos):
     M = maxEval / maxAtrib
     maxExitos = 0.1 * maxAtrib
 
-    tempInicial = (0.3*ganancia)/-(np.log(0.3))
-    if (tempInicial < 0.001):
-        tempInicial = 0.001
-
-    temperatura = tempInicial
+    temperatura = (0.3*ganancia)/-(np.log(0.3))
+    if (temperatura < 0.001):
+        temperatura = 0.001
 
     contEval = 0
-
+    exitos = 1
     while contEval < maxEval and exitos != 0:
         contAtrib = 0
         exitos = 0
@@ -92,8 +74,10 @@ def enfriamientoSimulado(train, maxEval, numAtributos):
 
             contAtrib += 1
 
-        beta = (tempInicial - 0.001) / M*tempInicial*0.001
+        beta = (temperatura - 0.001) / M*temperatura*0.001
         temperatura = temperatura / (1 + (beta*temperatura))
+        if (temperatura < 0.001):
+            temperatura = 0.001
 
     return mejorW
 
@@ -114,13 +98,16 @@ def mutateILS(w, t):
 # -----------------------------------------------------------------------------------
 def iterativeLS(train, maxEval, maxVec, numAtributos):
     w = np.random.random_sample((numAtributos,))
+    w = busquedaLocal(w, train, 1000, maxVec, numAtributos)
     ganancia = obtenerGanancia(w, train[0], train[1])
-    busquedaLocal(train, 1000, maxVec, numAtributos)
 
-    for i in range(maxEval):
+    i = 1000
+    while i < maxEval:
+        i += 1000
         t = random.sample(list(range(0, numAtributos)), int(0.1 * numAtributos))
         wAux = mutateILS(w, t)
-        gananciaAux = obtenerGanancia(w, train[0], train[1])
+        wAux = busquedaLocal(wAux, train, 1000, maxVec, numAtributos)
+        gananciaAux = obtenerGanancia(wAux, train[0], train[1])
 
         if gananciaAux > ganancia:
             w = np.copy(wAux)
@@ -162,7 +149,7 @@ def evolucionDiferencial(train, maxEval, numAtributos, CR, tipoCruce):
     while nEval < maxEval:
 
         for i in range(tamPoblacion):
-            index = random.sample(list(range(0, numAtributos)), 3)
+            index = random.sample(list(range(0, tamPoblacion)), 3)
             padre1, padre2, padre3 = poblacion[index]
 
             posW = np.random.randint(0, tamPoblacion)
@@ -174,7 +161,7 @@ def evolucionDiferencial(train, maxEval, numAtributos, CR, tipoCruce):
                 if np.random.rand() <= CR and tipoCruce == 'Aleatorio':
                     wAux[j] = cruceAleatorio(padre1[j], padre2[j], padre3[j], 0.5)
                 if np.random.rand() <= CR and tipoCruce == 'Mejor':
-                    mejor = poblacion[ np.where(max(ganancias)) ].reshape(40)
+                    mejor = poblacion[ np.where(max(ganancias)) ].reshape(numAtributos)
                     wAux[j] = cruceMejor(w[j], mejor[j], padre1[j], padre2[j], 0.5)
 
             gananciaAux = obtenerGanancia(poblacion[i], train[0], train[1])
@@ -185,7 +172,7 @@ def evolucionDiferencial(train, maxEval, numAtributos, CR, tipoCruce):
                 ganancias[posW] = np.copy(gananciaAux)
 
 
-    return poblacion[ np.where(max(ganancias)) ].reshape(40)
+    return poblacion[ np.where(max(ganancias)) ].reshape(numAtributos)
 
 
 
@@ -196,7 +183,8 @@ def evolucionDiferencial(train, maxEval, numAtributos, CR, tipoCruce):
 if opcion == '1':
     for e in range(nEjecucuiones):
         antes = time.time()
-        w = busquedaLocal(train[e], 15000, 20, X.shape[1])
+        w = np.random.random_sample((X.shape[1],))
+        w = busquedaLocal(w, train[e], 15000, 20, X.shape[1])
         resultados.append(evaluar(w, test[e][0], test[e][1], antes))
 
 
@@ -341,5 +329,5 @@ else:
 
 
 df = pd.DataFrame(resultados)
-df.to_csv('result.csv', index=False)
+df.to_csv('result.csv', index=True)
 print(df)

@@ -17,6 +17,29 @@ def read_data(file):
 
 
 # -----------------------------------------------------------------------------------
+# División de los datos en 5 partes iguales conservando la
+# proporción 80%-20%. Se guardarán en las listas train y test
+# -----------------------------------------------------------------------------------
+def divide_data(datos):
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=73)
+    train = []
+    test = []
+
+    X = datos[:,:datos.shape[1]-1]
+    y = datos[:,datos.shape[1]-1]
+
+    for train_index, test_index in skf.split(X, y):
+       x_train, y_train = X[train_index], y[train_index]
+       x_test, y_test   = X[test_index], y[test_index]
+
+       train.append([x_train, y_train])
+       test.append([x_test, y_test])
+
+    return X, y, train, test
+
+
+
+# -----------------------------------------------------------------------------------
 # Función de evaluación para sacar los 4 parámetros de las tablas
 # Devuelve los porcentajes y el tiempo que ha tardado
 # -----------------------------------------------------------------------------------
@@ -98,8 +121,7 @@ def mutate(cromosoma):
 
 
 
-def busquedaLocal(train, maxEval, maxVec, numAtributos):
-    w = np.random.random_sample((numAtributos,))
+def busquedaLocal(w, train, maxEval, maxVec, numAtributos):
     ganancia = obtenerGanancia(w, train[0], train[1])
     contEval = 0
     contAtrib = 0

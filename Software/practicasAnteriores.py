@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import time
+import random
 from scipy.spatial import KDTree
 from scipy.spatial import cKDTree
 from sklearn.model_selection import StratifiedKFold
@@ -97,9 +98,9 @@ def mutate(cromosoma):
 
 
 
-def busquedaLocal(train, test, maxEval, maxVec, numAtributos):
+def busquedaLocal(train, maxEval, maxVec, numAtributos):
     w = np.random.random_sample((numAtributos,))
-    ganancia = obtenerGanancia(w, test[0], test[1])
+    ganancia = obtenerGanancia(w, train[0], train[1])
     contEval = 0
     contAtrib = 0
     fin = False

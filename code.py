@@ -1,4 +1,4 @@
-from practicasAnteriores import *
+from previousPractices import *
 
 np.random.seed(1)
 
@@ -13,7 +13,7 @@ X, y, train, test = divide_data(datos)
 
 # -----------------------------------------------------------------------------------
 # Menu de control de la aplicación
-# (Sin relación con la práctica, solo para facilizar el uso)
+# (Sin relación con la práctica, solo para facilizar su uso)
 # -----------------------------------------------------------------------------------
 print("Seleccione cómo quiere modificar los datos:")
 print("1 - Búsqueda Local")
